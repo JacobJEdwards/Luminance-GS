@@ -583,18 +583,18 @@ class Runner:
             lambda_low = 1.0
 
             ssim_loss_low = self.ssim(
-                colors_low.unsqueeze(0), pixels.unsqueeze(0)
-            )
-            
-            ssim_loss_enh = self.ssim(
-                colors_enh.unsqueeze(0), reflectance_target_permuted.unsqueeze(0)
-            )
+                pixels.permute(0,3,1,2), colors_low.permute(0,3,1,2)
+            )  # [1, H, W, 3] -> [1, 3, H, W] for ssim
+
+            # ssim_loss_enh = self.ssim(
+            #     pixels.permute(0,3,1,2), colors_enh.permute(0,3,1,2)
+            # )
 
             loss = (lambda_reflect * loss_reflectance +
                     lambda_smooth * loss_illum_smooth +
                     lambda_low * loss_reconstruct_low
-                    + cfg.ssim_lambda * (1.0 - ssim_loss_low)
-                    + cfg.ssim_lambda * (1.0 - ssim_loss_enh))
+                    + cfg.ssim_lambda * (1.0 - ssim_loss_low))
+                    # + cfg.ssim_lambda * (1.0 - ssim_loss_enh))
 
 
             loss.backward()
