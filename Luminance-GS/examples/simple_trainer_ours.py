@@ -22,7 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 
-from examples.utils import RetinexNet
+from utils import RetinexNet
 from utils import (
     AppearanceOptModule,
     CameraOptModule,
@@ -586,7 +586,7 @@ class Runner:
             ssim_loss_low = self.ssim(
                 colors_low, pixels
             )
-            
+
             ssim_loss_enh = self.ssim(
                 colors_enh, reflectance_target_permuted
             )
@@ -596,8 +596,8 @@ class Runner:
                     lambda_low * loss_reconstruct_low
                     + cfg.ssim_lambda * (1.0 - ssim_loss_low)
                     + cfg.ssim_lambda * (1.0 - ssim_loss_enh))
-            
-            
+
+
             loss.backward()
 
             desc = f"loss={loss.item():.3f}| " f"sh degree={sh_degree_to_use}| "
