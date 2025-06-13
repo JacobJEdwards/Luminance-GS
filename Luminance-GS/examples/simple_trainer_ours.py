@@ -21,6 +21,8 @@ from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
+
+from examples.utils import RetinexNet
 from utils import (
     AppearanceOptModule,
     CameraOptModule,
@@ -54,7 +56,7 @@ class Config:
     ckpt: Optional[str] = None
 
     # Path to the dataset
-    data_dir: str = "../data/LOM/bike"
+    data_dir: str = "../../colmap"
     # data_dir: str = "../data/NeRF_360/bicycle"
 
     exp_name: str = "low"   # Switch Conditions Here. overexposure: str = "over_exp"; varying exposure: str = "variance"
@@ -62,7 +64,7 @@ class Config:
     # Downsample factor for the dataset
     data_factor: int = 1    # data_factor 8 for Mip360 dataset
     # Directory to save results
-    result_dir: str = "results_low/ours/bike"
+    result_dir: str = "../../result"
     # Every N images there is a test image
     test_every: int = 8
     # Random crop size for training  (experimental)
@@ -158,7 +160,7 @@ class Config:
     # Dump information to tensorboard every this steps
     tb_every: int = 100
     # Save training images to tensorboard
-    tb_save_image: bool = False
+    tb_save_image: bool = True
 
     def adjust_steps(self, factor: float):
         self.eval_steps = [int(i * factor) for i in self.eval_steps]
@@ -281,6 +283,14 @@ class Runner:
         )
         self.valset = Dataset(self.parser, split="val") # Validation Set
         self.scene_scale = self.parser.scene_scale * 1.1 * cfg.global_scale
+
+        self.retinex_net = RetinexNet().to(self.device)
+        self.retinex_optimizer = torch.optim.Adam(
+            self.retinex_net.parameters(),
+            lr=1e-4 * math.sqrt(cfg.batch_size),
+            weight_decay=1e-4,
+        )
+
         
         # Model
         feature_dim = 32 if cfg.app_opt else None
@@ -455,8 +465,6 @@ class Runner:
         device = self.device
 
         loss_contrast = L_spa()     # spatial consistancy loss
-        loss_histo = HistogramPriorLoss()   # curve control loss
-
 
         # Dump cfg.
         with open(f"{cfg.result_dir}/cfg.json", "w") as f:
@@ -465,33 +473,21 @@ class Runner:
         max_steps = cfg.max_steps
         init_step = 0
 
-        scheulers = [
-            # means3d has a learning rate schedule, that end at 0.01 of the initial value
-            torch.optim.lr_scheduler.ExponentialLR(
-                self.optimizers[0], gamma=0.01 ** (1.0 / max_steps)
-            ),
-        ]
+        schedulers = [torch.optim.lr_scheduler.ExponentialLR(
+            self.optimizers[0], gamma=0.01 ** (1.0 / max_steps)
+        ), torch.optim.lr_scheduler.ExponentialLR(
+            self.curve_optimizers[0], gamma=0.01 ** (1.0 / max_steps)
+        ), torch.optim.lr_scheduler.ExponentialLR(
+            self.adjust_optimizers[0], gamma=0.01 ** (1.0 / max_steps)
+        ), torch.optim.lr_scheduler.ExponentialLR(
+            self.sat_optimizers[0], gamma=0.01 ** (1.0 / max_steps)
+        )]
 
         # curve optimizer & curve adjustment optimizer & sat optimizer
-        scheulers.append(
-                torch.optim.lr_scheduler.ExponentialLR(
-                    self.curve_optimizers[0], gamma=0.01 ** (1.0 / max_steps)
-                )
-            )
-        scheulers.append(
-                torch.optim.lr_scheduler.ExponentialLR(
-                    self.adjust_optimizers[0], gamma=0.01 ** (1.0 / max_steps)
-                )
-            )
-        scheulers.append(
-                torch.optim.lr_scheduler.ExponentialLR(
-                    self.sat_optimizers[0], gamma=0.01 ** (1.0 / max_steps)
-                )
-            )
 
         if cfg.pose_opt:
             # pose optimization has a learning rate schedule
-            scheulers.append(
+            schedulers.append(
                 torch.optim.lr_scheduler.ExponentialLR(
                     self.pose_optimizers[0], gamma=0.01 ** (1.0 / max_steps)
                 )
@@ -525,6 +521,7 @@ class Runner:
 
             camtoworlds = camtoworlds_gt = data["camtoworld"].to(device)  # [1, 4, 4]
             Ks = data["K"].to(device)  # [1, 3, 3]
+
             pixels = data["image"].to(device) / 255.0  # [1, H, W, 3]
             
             num_train_rays_per_step = (
@@ -542,6 +539,12 @@ class Runner:
             # sh schedule
             sh_degree_to_use = min(step // cfg.sh_degree_interval, cfg.sh_degree)
 
+            input_image_for_net = pixels.permute(0, 3, 1, 2)
+            illumination_map = self.retinex_net(input_image_for_net)  # [1, 3, H, W]
+
+            reflectance_target = input_image_for_net / (illumination_map + 1e-8)  # [1, 3, H, W]
+            reflectance_target = torch.clamp(reflectance_target, 0, 1)
+
             # forward
             renders_enh, renders_low, alphas_enh, alphas_low, info = self.rasterize_splats(
                 camtoworlds=camtoworlds,
@@ -554,6 +557,7 @@ class Runner:
                 image_ids=image_ids,
                 render_mode="RGB",
             )
+
             if renders_low.shape[-1] == 4:
                 colors_low, depths_low = renders_low[..., 0:3], renders_low[..., 3:4]
                 colors_enh, depths_enh = renders_enh[..., 0:3], renders_enh[..., 3:4]
@@ -567,51 +571,26 @@ class Runner:
                 colors_enh = colors_enh + bkgd * (1.0 - alphas_enh)
 
             info["means2d"].retain_grad()  # used for running stats
-            
-            curve_adj_bias = self.curve_adjust(pixels.permute(0,3,1,2), camtoworlds) # encode low-light GT and camera position to get adjust curve
-            
-            gamma_alpha_beta = self.curve_adjust_gamma(pixels.permute(0,3,1,2), camtoworlds)
 
-            curve_adj = torch.clamp(self.curve + curve_adj_bias, 0, 1)    # Clamp the curve in range of (0, 1)
+            reflectance_target_permuted = reflectance_target.permute(0, 2, 3, 1)  # [1, H, W, 3]
+            loss_reflectance = F.l1_loss(colors_enh, reflectance_target_permuted)
 
-            normal= (self.axis1_para[image_ids] + torch.Tensor([1, 0, 0]).to(colors_low.device)).unsqueeze(0)
-            
-            normal2 = (self.axis2_para[image_ids] + torch.Tensor([1, 0]).to(colors_low.device)).unsqueeze(0)
-            
-            bias = torch.zeros([1, 3]).to(colors_low.device)
-            
-            t1s, t2s, t3s, bias  = pixel_project(pixels.permute(0,3,1,2), normal, normal2, bias)
-            t1s_out = [LUT_mapping(t1s, curve_adj), t1s[1], t1s[2], t1s[3]] 
-            t2s_out = [LUT_mapping(t2s, curve_adj), t2s[1], t2s[2], t2s[3]] 
-            t3s_out = [LUT_mapping(t3s, curve_adj), t3s[1], t3s[2], t3s[3]] 
+            loss_illum_smooth = loss_contrast(input_image_for_net, illumination_map)
 
-            pixels_enh = pixel_project_back(t1s_out, t2s_out, t3s_out, bias).permute(0,2,3,1)
-            
-            gamma = gamma_alpha_beta[:,0]
-            alpha, beta = gamma_alpha_beta[:,1], gamma_alpha_beta[:,2]
-            
-            gamma = torch.Tensor([1.0]).to(device) + 0.1*gamma
-            alpha = torch.Tensor([0.5]).to(device) + 0.002*alpha 
-            beta = torch.Tensor([1.0]).to(device) + 0.002*beta
-            
-            pesdo_curve = gamma_curve(self.pesdo_curve, gamma)  # Pseudo-gamma curve
-            pesdo_curve = s_curve(pesdo_curve, alpha, beta) # Pseudo-scurve curve
-            
+            loss_reconstruct_low = F.l1_loss(colors_low, pixels)
 
-            con_degree = (self.constrast_level/torch.mean(pixels)).item()   # frame-adaptive contrast degree, Eq.8 in paper
-            loss_co = loss_contrast(pixels.permute(0,3,1,2), colors_enh.permute(0,3,1,2), contrast=con_degree)
-            
-            l1loss = F.l1_loss(colors_low, pixels)
-            ssimloss = 1.0 - self.ssim(pixels.permute(0,3,1,2), colors_low.permute(0,3,1,2))
-            loss_regress_low = l1loss * (1.0 - cfg.ssim_lambda) + ssimloss * cfg.ssim_lambda
+            lambda_reflect = 1.0
+            lambda_smooth = 0.1
+            lambda_low = 1.0
 
-            l1loss_enh = F.l1_loss(colors_enh, pixels_enh)  # enhancement loss constrain
-            ssimloss_enh = 1.0 - self.ssim(pixels_enh.permute(0,3,1,2), colors_enh.permute(0,3,1,2))
-            loss_regress_enh = l1loss_enh * (1.0 - cfg.ssim_lambda) + ssimloss_enh * cfg.ssim_lambda
-            
-            hist_loss = loss_histo(curve_adj, pixels, pesdo_curve, step)
-            
-            loss = loss_regress_low + 0.5*loss_regress_enh + loss_co + 10 * hist_loss
+            ssim_loss = self.ssim(
+                colors_enh.unsqueeze(0), reflectance_target_permuted.unsqueeze(0)
+            )
+
+            loss = (lambda_reflect * loss_reflectance +
+                    lambda_smooth * loss_illum_smooth +
+                    lambda_low * loss_reconstruct_low
+                    + cfg.ssim_lambda * (1.0 - ssim_loss))
             
             loss.backward()
 
@@ -632,7 +611,9 @@ class Runner:
                     "train/num_GS", len(self.splats["means3d"]), step
                 )
                 self.writer.add_scalar("train/mem", mem, step)
-                
+                self.writer.add_scalar("train/loss_reflectance", loss_reflectance.item(), step)
+                self.writer.add_scalar("train/loss_illum_smooth", loss_illum_smooth.item(), step)
+
                 if cfg.tb_save_image:
                     canvas = torch.cat([colors_enh, pixels_enh], dim=2).detach().cpu().numpy()
                     canvas = canvas.reshape(-1, *canvas.shape[2:])
@@ -722,23 +703,18 @@ class Runner:
             for optimizer in self.optimizers:
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
-            for optimizer in self.curve_optimizers:
-                optimizer.step()
-                optimizer.zero_grad(set_to_none=True)
-            for optimizer in self.adjust_optimizers:
-                optimizer.step()
-                optimizer.zero_grad(set_to_none=True)
-            for optimizer in self.sat_optimizers:
-                optimizer.step()
-                optimizer.zero_grad(set_to_none=True)
             for optimizer in self.pose_optimizers:
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
             for optimizer in self.app_optimizers:
                 optimizer.step()
                 optimizer.zero_grad(set_to_none=True)
-            for scheduler in scheulers:
+            for scheduler in schedulers:
                 scheduler.step()
+
+            self.retinex_optimizer.step()
+            self.retinex_optimizer.zero_grad(set_to_none=True)
+
 
             # save checkpoint
             if step in [i - 1 for i in cfg.save_steps] or step == max_steps - 1:
