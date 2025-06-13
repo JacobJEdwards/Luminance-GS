@@ -618,15 +618,10 @@ class Runner:
                 self.writer.add_scalar("train/loss_reflectance", loss_reflectance.item(), step)
                 self.writer.add_scalar("train/loss_illum_smooth", loss_illum_smooth.item(), step)
 
-                if cfg.tb_save_image:
                     # canvas = torch.cat([colors_enh, pixels_enh], dim=2).detach().cpu().numpy()
                     # canvas = torch.cat([colors_enh, pixels], dim=2).detach().cpu().numpy()
                     # canvas = canvas.reshape(-1, *canvas.shape[2:])
                     # self.writer.add_image("train/render", canvas, step)
-
-                    canvas_low = torch.cat([colors_low, pixels], dim=2).detach().cpu().numpy()
-                    canvas_low = canvas_low.reshape(-1, *canvas_low.shape[2:])
-                    self.writer.add_image("train/render_low", canvas_low, step)
 
                 self.writer.flush()
 
