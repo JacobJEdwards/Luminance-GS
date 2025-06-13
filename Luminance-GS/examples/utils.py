@@ -314,27 +314,27 @@ class RetinexNet(nn.Module):
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
-def forward(self, x):
-    c1 = self.relu(self.conv1(x))
-    p1 = self.pool(c1)
+    def forward(self, x):
+        c1 = self.relu(self.conv1(x))
+        p1 = self.pool(c1)
 
-    c2 = self.relu(self.conv2(p1))
-    p2 = self.pool(c2)
+        c2 = self.relu(self.conv2(p1))
+        p2 = self.pool(c2)
 
-    up1 = self.upconv1(p2)
+        up1 = self.upconv1(p2)
 
-    up1_resized = F.interpolate(up1, size=p1.shape[2:], mode='bilinear', align_corners=False)
+        up1_resized = F.interpolate(up1, size=p1.shape[2:], mode='bilinear', align_corners=False)
 
-    merged = torch.cat([up1_resized, p1], dim=1)
-    c3 = self.relu(self.conv3(merged))
+        merged = torch.cat([up1_resized, p1], dim=1)
+        c3 = self.relu(self.conv3(merged))
 
-    up2 = self.upconv2(c3)
+        up2 = self.upconv2(c3)
 
-    illumination = self.sigmoid(up2)
+        illumination = self.sigmoid(up2)
 
-    final_illumination = F.interpolate(illumination, size=x.shape[2:], mode='bilinear', align_corners=False)
+        final_illumination = F.interpolate(illumination, size=x.shape[2:], mode='bilinear', align_corners=False)
 
-    return final_illumination.repeat(1, 3, 1, 1)
+        return final_illumination.repeat(1, 3, 1, 1)
 # 测试代码
 if __name__ == "__main__":
     
