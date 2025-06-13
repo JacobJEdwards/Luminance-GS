@@ -585,7 +585,7 @@ class Runner:
             ssim_loss_low = self.ssim(
                 pixels.permute(0,3,1,2), colors_low.permute(0,3,1,2)
             )  # [1, H, W, 3] -> [1, 3, H, W] for ssim
-
+            
             # ssim_loss_enh = self.ssim(
             #     pixels.permute(0,3,1,2), colors_enh.permute(0,3,1,2)
             # )
@@ -610,7 +610,6 @@ class Runner:
             if cfg.tb_every > 0 and step % cfg.tb_every == 0:
                 mem = torch.cuda.max_memory_allocated() / 1024**3
                 self.writer.add_scalar("train/loss", loss.item(), step)
-                self.writer.add_scalar("train/l1loss", l1loss.item(), step)
                 self.writer.add_scalar("train/ssimloss", ssimloss.item(), step)
                 self.writer.add_scalar(
                     "train/num_GS", len(self.splats["means3d"]), step
