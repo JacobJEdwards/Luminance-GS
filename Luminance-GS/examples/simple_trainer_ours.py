@@ -22,7 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 
-from examples.losses import L_exp
+from losses import L_exp
 from utils import (
     RetinexNet,
     AppearanceOptModule,
