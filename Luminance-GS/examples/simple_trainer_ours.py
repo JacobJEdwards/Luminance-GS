@@ -22,6 +22,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 
+from examples.losses import L_exp
 from utils import (
     RetinexNet,
     AppearanceOptModule,
@@ -45,7 +46,7 @@ sys.path.append(gsplat_path)
 from rendering_double import rasterization_dual
 
 from tools import pixel_project, pixel_project_back, LUT_mapping
-from losses import L_spa, HistogramPriorLoss, gamma_curve, s_curve
+from losses import L_spa, HistogramPriorLoss, gamma_curve, s_curve, L_color
 
 
 @dataclass
@@ -156,6 +157,12 @@ class Config:
     depth_loss: bool = False
     # Weight for depth loss
     depth_lambda: float = 1e-2
+
+    lambda_reflect = 1.0
+    lambda_smooth = 0.1
+    lambda_low = 1.0
+    lambda_color = 0.1
+    lambda_exposure = 0.1
 
     # Dump information to tensorboard every this steps
     tb_every: int = 100
@@ -289,6 +296,8 @@ class Runner:
             lr=1e-4 * math.sqrt(cfg.batch_size),
             weight_decay=1e-4,
         )
+        self.loss_color = L_color().to(self.device)
+        self.loss_exposure = L_exp(patch_size=16, mean_val=0.6).to(self.device)
 
         
         # Model
@@ -539,9 +548,14 @@ class Runner:
             sh_degree_to_use = min(step // cfg.sh_degree_interval, cfg.sh_degree)
 
             input_image_for_net = pixels.permute(0, 3, 1, 2)
-            illumination_map = self.retinex_net(input_image_for_net)  # [1, 3, H, W]
 
-            reflectance_target = input_image_for_net / (illumination_map + 1e-8)  # [1, 3, H, W]
+            log_input_image = torch.log(input_image_for_net + 1e-8)  # [1, 3, H, W]
+
+            log_illumination_map = self.retinex_net(input_image_for_net)  # [1, 3, H, W]
+
+            log_reflectance_target = log_input_image - log_illumination_map
+
+            reflectance_target = torch.exp(log_reflectance_target)
             reflectance_target = torch.clamp(reflectance_target, 0, 1)
 
             # forward
@@ -573,14 +587,12 @@ class Runner:
 
             reflectance_target_permuted = reflectance_target.permute(0, 2, 3, 1)  # [1, H, W, 3]
             loss_reflectance = F.l1_loss(colors_enh, reflectance_target_permuted)
+            
+            illumination_map = torch.exp(log_illumination_map)  # [1, 3, H, W]
 
             loss_illum_smooth = loss_contrast(input_image_for_net, illumination_map)
 
             loss_reconstruct_low = F.l1_loss(colors_low, pixels)
-
-            lambda_reflect = 1.0
-            lambda_smooth = 0.1
-            lambda_low = 1.0
 
             ssim_loss_low = self.ssim(
                 pixels.permute(0,3,1,2), colors_low.permute(0,3,1,2)
@@ -590,10 +602,20 @@ class Runner:
             #     pixels.permute(0,3,1,2), colors_enh.permute(0,3,1,2)
             # )
 
-            loss = (lambda_reflect * loss_reflectance +
-                    lambda_smooth * loss_illum_smooth +
-                    lambda_low * loss_reconstruct_low
-                    + cfg.ssim_lambda * (1.0 - ssim_loss_low))
+            loss_illum_color = self.loss_color(
+                illumination_map
+            )
+            loss_illum_exposure = self.loss_exposure(
+                illumination_map
+            )
+
+            loss = (cfg.lambda_reflect * loss_reflectance +
+                    cfg.lambda_smooth * loss_illum_smooth +
+                    cfg.lambda_low * loss_reconstruct_low
+                    + cfg.ssim_lambda * (1.0 - ssim_loss_low)
+                    + loss_illum_color * cfg.lambda_color
+                    + loss_illum_exposure * cfg.lambda_exposure)
+
                     # + cfg.ssim_lambda * (1.0 - ssim_loss_enh))
 
 

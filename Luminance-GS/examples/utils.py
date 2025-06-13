@@ -312,7 +312,7 @@ class RetinexNet(nn.Module):
         self.upconv2 = nn.ConvTranspose2d(32, out_channels, kernel_size=2, stride=2)
 
         self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
+        # self.sigmoid = nn.Sigmoid() we operate in log space, no need for sigmoid
 
     def forward(self, x):
         c1 = self.relu(self.conv1(x))
@@ -328,11 +328,11 @@ class RetinexNet(nn.Module):
         merged = torch.cat([up1_resized, p1], dim=1)
         c3 = self.relu(self.conv3(merged))
 
-        up2 = self.upconv2(c3)
+        log_illumincation = self.upconv2(c3)
 
-        illumination = self.sigmoid(up2)
+        # illumination = self.sigmoid(up2)
 
-        final_illumination = F.interpolate(illumination, size=x.shape[2:], mode='bilinear', align_corners=False)
+        final_illumination = F.interpolate(log_illumination, size=x.shape[2:], mode='bilinear', align_corners=False)
 
         return final_illumination.repeat(1, 3, 1, 1)
 # 测试代码
