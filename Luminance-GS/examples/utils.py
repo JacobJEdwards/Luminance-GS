@@ -328,7 +328,7 @@ class RetinexNet(nn.Module):
         merged = torch.cat([up1_resized, p1], dim=1)
         c3 = self.relu(self.conv3(merged))
 
-        log_illumincation = self.upconv2(c3)
+        log_illumination = self.upconv2(c3)
 
         # illumination = self.sigmoid(up2)
 
