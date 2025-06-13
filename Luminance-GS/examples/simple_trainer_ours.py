@@ -270,7 +270,6 @@ class Runner:
         # Load data: Training data should contain initial points and colors.
         self.parser = Parser(
             data_dir=cfg.data_dir,
-            exp_name = cfg.exp_name,
             factor=cfg.data_factor, # down scale ratio
             normalize=True,
             test_every=cfg.test_every,

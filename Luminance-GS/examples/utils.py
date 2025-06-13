@@ -304,33 +304,37 @@ class RetinexNet(nn.Module):
         super(RetinexNet, self).__init__()
 
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
 
         self.upconv1 = nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2)
         self.conv3 = nn.Conv2d(64, 32, kernel_size=3, padding=1)
-
         self.upconv2 = nn.ConvTranspose2d(32, out_channels, kernel_size=2, stride=2)
 
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self, x):
-        c1 = self.relu(self.conv1(x))
-        p1 = self.pool(c1)
-        c2 = self.relu(self.conv2(p1))
-        p2 = self.pool(c2)
+def forward(self, x):
+    c1 = self.relu(self.conv1(x))
+    p1 = self.pool(c1)
 
-        up1 = self.upconv1(p2)
-        merged = torch.cat([up1, p1], dim=1)
-        c3 = self.relu(self.conv3(merged))
+    c2 = self.relu(self.conv2(p1))
+    p2 = self.pool(c2)
 
-        up2 = self.upconv2(c3)
+    up1 = self.upconv1(p2)
 
-        illumination = self.sigmoid(up2)
+    up1_resized = F.interpolate(up1, size=p1.shape[2:], mode='bilinear', align_corners=False)
 
-        return illumination.repeat(1, 3, 1, 1)
+    merged = torch.cat([up1_resized, p1], dim=1)
+    c3 = self.relu(self.conv3(merged))
 
+    up2 = self.upconv2(c3)
+
+    illumination = self.sigmoid(up2)
+
+    final_illumination = F.interpolate(illumination, size=x.shape[2:], mode='bilinear', align_corners=False)
+
+    return final_illumination.repeat(1, 3, 1, 1)
 # 测试代码
 if __name__ == "__main__":
     
