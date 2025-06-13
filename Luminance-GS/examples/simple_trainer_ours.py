@@ -22,8 +22,8 @@ from torch.utils.tensorboard import SummaryWriter
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
 
-from utils import RetinexNet
 from utils import (
+    RetinexNet,
     AppearanceOptModule,
     CameraOptModule,
     CrossAttention,
@@ -56,7 +56,7 @@ class Config:
     ckpt: Optional[str] = None
 
     # Path to the dataset
-    data_dir: str = "../../colmap"
+    data_dir: str = "../../../colmap"
     # data_dir: str = "../data/NeRF_360/bicycle"
 
     exp_name: str = "low"   # Switch Conditions Here. overexposure: str = "over_exp"; varying exposure: str = "variance"
@@ -64,7 +64,7 @@ class Config:
     # Downsample factor for the dataset
     data_factor: int = 1    # data_factor 8 for Mip360 dataset
     # Directory to save results
-    result_dir: str = "../../result"
+    result_dir: str = "../../../result"
     # Every N images there is a test image
     test_every: int = 8
     # Random crop size for training  (experimental)
