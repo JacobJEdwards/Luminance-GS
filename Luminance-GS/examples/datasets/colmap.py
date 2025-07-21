@@ -12,7 +12,7 @@ from typing_extensions import assert_never
 import imageio.v2 as imageio
 
 from .normalize import (
-    align_principal_axes,
+    align_principle_axes,
     similarity_from_cameras,
     transform_cameras,
     transform_points,
