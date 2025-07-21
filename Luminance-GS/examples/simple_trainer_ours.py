@@ -57,8 +57,6 @@ class Config:
     data_dir: str = "../data/LOM/bike"
     # data_dir: str = "../data/NeRF_360/bicycle"
 
-    exp_name: str = "low"   # Switch Conditions Here. overexposure: str = "over_exp"; varying exposure: str = "variance"
-    
     # Downsample factor for the dataset
     data_factor: int = 1    # data_factor 8 for Mip360 dataset
     # Directory to save results
@@ -172,10 +170,7 @@ class Config:
 
 cfg = tyro.cli(Config)
 
-if cfg.exp_name in ["low", "over_exp"]:
-    from datasets.colmap import Dataset, Parser
-else:
-    from datasets.colmap_mip360 import Dataset, Parser
+from datasets.colmap import Dataset, Parser
 
 
 def create_splats_with_optimizers(
@@ -268,8 +263,6 @@ class Runner:
         # Load data: Training data should contain initial points and colors.
         self.parser = Parser(
             data_dir=cfg.data_dir,
-            exp_name = cfg.exp_name,
-            factor=cfg.data_factor, # down scale ratio
             normalize=True,
             test_every=cfg.test_every,
         )
