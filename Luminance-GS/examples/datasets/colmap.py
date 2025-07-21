@@ -224,7 +224,7 @@ class Parser:
             camtoworlds = transform_cameras(T1, camtoworlds)
             points = transform_points(T1, points)
 
-            T2 = align_principal_axes(points)
+            T2 = align_principle_axes(points)
             camtoworlds = transform_cameras(T2, camtoworlds)
             points = transform_points(T2, points)
 
