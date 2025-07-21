@@ -15,7 +15,6 @@ do
 
     # train without eval
     CUDA_VISIBLE_DEVICES=0 python simple_trainer_ours.py default --disable_viewer --data_factor $DATA_FACTOR \
-        --render_traj_path $RENDER_TRAJ_PATH \
         --data_dir ../../../360_v2/$SCENE/ \
         --result_dir $RESULT_DIR/$SCENE/
 
@@ -23,7 +22,6 @@ do
     for CKPT in $RESULT_DIR/$SCENE/ckpts/*;
     do
         CUDA_VISIBLE_DEVICES=0 python simple_trainer_ours.py default --disable_viewer --data_factor $DATA_FACTOR \
-            --render_traj_path $RENDER_TRAJ_PATH \
             --data_dir ../../../360_v2/$SCENE/ \
             --result_dir $RESULT_DIR/$SCENE/ \
             --ckpt $CKPT
