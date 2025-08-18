@@ -1,5 +1,5 @@
 SCENE_DIR="../../../360_v2"
-RESULT_DIR="../../../results/luminance"
+RESULT_DIR="../../../lum/contrast"
 SCENE_LIST="garden bicycle stump bonsai counter kitchen room" # treehill flowers
 RENDER_TRAJ_PATH="ellipse"
 
@@ -17,35 +17,4 @@ do
     CUDA_VISIBLE_DEVICES=0 python simple_trainer_ours.py --disable_viewer --data_factor $DATA_FACTOR \
         --data_dir ../../../360_v2/$SCENE/ \
         --result_dir $RESULT_DIR/$SCENE/
-
-    # run eval and render
-    for CKPT in $RESULT_DIR/$SCENE/ckpts/*;
-    do
-        CUDA_VISIBLE_DEVICES=0 python simple_trainer_ours.py --disable_viewer --data_factor $DATA_FACTOR \
-            --data_dir ../../../360_v2/$SCENE/ \
-            --result_dir $RESULT_DIR/$SCENE/ \
-            --ckpt $CKPT
-    done
-done
-
-
-for SCENE in $SCENE_LIST;
-do
-    echo "=== Eval Stats ==="
-
-    for STATS in $RESULT_DIR/$SCENE/stats/val*.json;
-    do
-        echo $STATS
-        cat $STATS;
-        echo
-    done
-
-    echo "=== Train Stats ==="
-
-    for STATS in $RESULT_DIR/$SCENE/stats/train*_rank0.json;
-    do
-        echo $STATS
-        cat $STATS;
-        echo
-    done
 done
