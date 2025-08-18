@@ -172,7 +172,6 @@ cfg = tyro.cli(Config)
 
 from datasets.colmap import Dataset, Parser
 
-
 def create_splats_with_optimizers(
     points: Tensor,  # [N, 3]
     rgbs: Tensor,  # [N, 3]
