@@ -4,16 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c7aa9a71-c545-4b9f-8153-ace6f411e05c" name="Changes" comment="postfix">
-      <change afterPath="$PROJECT_DIR$/.idea/copilot.data.migration.agent.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/copilot.data.migration.ask.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/copilot.data.migration.ask2agent.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/copilot.data.migration.edit.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/Luminance-GS.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Luminance-GS.iml" afterDir="false" />
+    <list default="true" id="c7aa9a71-c545-4b9f-8153-ace6f411e05c" name="Changes" comment="updated script for testing">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/basic.sh" beforeDir="false" afterPath="$PROJECT_DIR$/examples/basic.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/datasets/colmap.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/datasets/colmap.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/simple_trainer_ours.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/simple_trainer_ours.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -99,7 +91,7 @@
       <workItem from="1758378384690" duration="886000" />
       <workItem from="1760801524598" duration="752000" />
       <workItem from="1760989368823" duration="708000" />
-      <workItem from="1772215490497" duration="218000" />
+      <workItem from="1772215490497" duration="894000" />
     </task>
     <task id="LOCAL-00001" summary="all god">
       <option name="closed" value="true" />
@@ -349,7 +341,15 @@
       <option name="project" value="LOCAL" />
       <updated>1758364498073</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="updated script for testing">
+      <option name="closed" value="true" />
+      <created>1772215714466</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1772215714466</updated>
+    </task>
+    <option name="localTasksCounter" value="33" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -361,7 +361,8 @@
     <MESSAGE value="script" />
     <MESSAGE value="contrast datset" />
     <MESSAGE value="postfix" />
-    <option name="LAST_COMMIT_MESSAGE" value="postfix" />
+    <MESSAGE value="updated script for testing" />
+    <option name="LAST_COMMIT_MESSAGE" value="updated script for testing" />
   </component>
   <component name="github-copilot-workspace">
     <instructionFileLocations>

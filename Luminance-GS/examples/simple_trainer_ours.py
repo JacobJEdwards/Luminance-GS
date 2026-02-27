@@ -955,24 +955,37 @@ class Runner:
             colors_enh = torch.clamp(colors_enh[:, :, :, :3], 0.0, 1.0)
             torch.cuda.synchronize()
             ellipse_time += time.time() - tic
+            orig_name = data["image_name"][0]  # batch_size=1 so it's a 1-element list
+            orig_stem = os.path.splitext(orig_name)[0]
+            orig_stem = orig_stem.replace("/", "_").replace("\\", "_")  # safe for folders
 
             # write images
             
             canvas = torch.cat([colors_low, colors_enh], dim=2).squeeze(0).cpu().numpy()
             
             imageio.imwrite(
-                f"{self.render_dir_depth}/val_{i:04d}_depth_low.png", (depth_low.squeeze(0).squeeze(-1).cpu().numpy() * 255).astype(np.uint8)
+                f"{self.render_dir_depth}/val_{i:04d}_depth_low_{orig_stem}.png", (depth_low.squeeze(0).squeeze(-1).cpu(
+
+                ).numpy(
+
+                ) * 255).astype(np.uint8)
             )
 
             imageio.imwrite(
-                f"{self.render_dir_depth}/val_{i:04d}_depth_enh.png", (depth_enh.squeeze(0).squeeze(-1).cpu().numpy() * 255).astype(np.uint8)
+                f"{self.render_dir_depth}/val_{i:04d}_depth_{orig_stem}.png", (depth_enh.squeeze(0).squeeze(-1).cpu(
+
+                ).numpy(
+
+                ) * 255).astype(np.uint8)
             )
 
             imageio.imwrite(
-                f"{self.render_dir}/val_{i:04d}_low.png", (colors_low.squeeze(0).cpu().numpy() * 255).astype(np.uint8)
+                f"{self.render_dir}/val_{i:04d}_low_{orig_stem}.png", (colors_low.squeeze(0).cpu().numpy() * 255).astype(
+                    np.uint8)
             )
             imageio.imwrite(
-                f"{self.render_dir}/val_{i:04d}_enh.png", (colors_enh.squeeze(0).cpu().numpy() * 255).astype(np.uint8)
+                f"{self.render_dir}/val_{i:04d}_{orig_stem}.png", (colors_enh.squeeze(0).cpu().numpy() * 255).astype(
+                    np.uint8)
             )
 
             pixels = pixels.permute(0, 3, 1, 2)  # [1, 3, H, W]
