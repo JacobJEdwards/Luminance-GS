@@ -1,25 +1,28 @@
-SCENE_DIR="/workspace/360_v2"
-RESULT_DIR="/workspace/lum"
-SCENE_LIST="garden bicycle stump bonsai counter kitchen room" # treehill flowers
-POSTFIXES="_contrast _multiexposure _variance"
+#!/bin/bash
 
-for POSTFIX in $POSTFIXES;
-do
-for SCENE in $SCENE_LIST;
-do
+BASE="/workspace/datasets"
 
-    if [ "$SCENE" = "bonsai" ] || [ "$SCENE" = "counter" ] || [ "$SCENE" = "kitchen" ] || [ "$SCENE" = "room" ]; then
-        DATA_FACTOR=2
-    else
-        DATA_FACTOR=4
-    fi
+DATASETS=(
+      "Circular-bench"
+      "chair"
+      "4logs-earlham-park"
+      "log-earlham-park"
+      "plastic-cart-130-vert-shade"
+      "robot-under-over-exposure"
+      "Rocks2"
+      "robot-recapture"
+      "plastic-cart-130deg"
+      "Log-hicontrast"
+      "log"
+      "rocks"
+      "split-in-half-tree"
+      "small-tree"
+      "small-tree-2"
+)
 
-    echo "Running $SCENE"
+for DATA in "${DATASETS[@]}"; do
+    echo "Processing: $DATA"
+    DIR="$BASE/$DATA"
 
-    # train without eval
-    CUDA_VISIBLE_DEVICES=0 python simple_trainer_ours.py --disable_viewer --data_factor $DATA_FACTOR \
-        --data_dir $SCENE_DIR/$SCENE/ \
-        --postfix $POSTFIX \
-        --result_dir $RESULT_DIR/$POSTFIX/$SCENE/
-done
+    python simple_trainer_ours.py default --data-dir "$DIR" --result-dir "$DIR/results/luminance-gs"
 done

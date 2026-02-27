@@ -127,8 +127,6 @@ class Config:
     # Anti-aliasing in rasterization. Might slightly hurt quantitative metrics.
     antialiased: bool = False
 
-    postfix: str = ""
-
     # Use random background for training to discourage transparency
     random_bkgd: bool = False
 
@@ -266,7 +264,6 @@ class Runner:
             data_dir=cfg.data_dir,
             normalize=True,
             test_every=cfg.test_every,
-            postfix=cfg.postfix
         )
         self.trainset = Dataset(    # Training Set
             self.parser,
