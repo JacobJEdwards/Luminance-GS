@@ -3,7 +3,6 @@ import math
 import os
 import time
 from dataclasses import dataclass, field
-from turtle import color
 from typing import Dict, List, Optional, Tuple
 
 import imageio
@@ -21,6 +20,7 @@ from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 from torchmetrics.image import PeakSignalNoiseRatio, StructuralSimilarityIndexMeasure
 from torchmetrics.image.lpip import LearnedPerceptualImagePatchSimilarity
+
 from utils import (
     AppearanceOptModule,
     CameraOptModule,
@@ -41,6 +41,7 @@ gsplat_path = os.path.abspath(os.path.join(current_dir, '..', 'gsplat'))
 sys.path.append(gsplat_path)
 
 from rendering_double import rasterization_dual
+from exporter import export_splats
 
 from tools import pixel_project, pixel_project_back, LUT_mapping
 from losses import L_spa, HistogramPriorLoss, gamma_curve, s_curve
@@ -82,6 +83,10 @@ class Config:
     eval_steps: List[int] = field(default_factory=lambda: [5_000, 7_000, 10_000])
     # Steps to save the model
     save_steps: List[int] = field(default_factory=lambda: [5_000, 70_000, 10_000])
+
+    save_ply: bool = True
+    # Steps to save the PLY point cloud
+    ply_steps: List[int] = field(default_factory=lambda: [5_000, 7_000, 10_000])
 
     # Degree of spherical harmonics
     sh_degree: int = 3
@@ -161,6 +166,7 @@ class Config:
     def adjust_steps(self, factor: float):
         self.eval_steps = [int(i * factor) for i in self.eval_steps]
         self.save_steps = [int(i * factor) for i in self.save_steps]
+        self.ply_steps = [int(i * factor) for i in self.ply_steps]
         self.max_steps = int(self.max_steps * factor)
         self.sh_degree_interval = int(self.sh_degree_interval * factor)
         self.refine_start_iter = int(self.refine_start_iter * factor)
@@ -255,6 +261,8 @@ class Runner:
         os.makedirs(self.render_dir, exist_ok=True)
         self.render_dir_depth = f"{cfg.result_dir}/renders_depth"
         os.makedirs(self.render_dir_depth, exist_ok=True)
+        self.ply_dir = f"{cfg.result_dir}/plys"
+        os.makedirs(self.ply_dir, exist_ok=True)
 
         # Tensorboard
         self.writer = SummaryWriter(log_dir=f"{cfg.result_dir}/tb")
@@ -732,6 +740,8 @@ class Runner:
             for scheduler in scheulers:
                 scheduler.step()
 
+
+
             # save checkpoint
             if step in [i - 1 for i in cfg.save_steps] or step == max_steps - 1:
                 mem = torch.cuda.max_memory_allocated() / 1024**3
@@ -749,6 +759,35 @@ class Runner:
                         "splats": self.splats.state_dict(),
                     },
                     f"{self.ckpt_dir}/ckpt_{step}.pt",
+                )
+
+            if cfg.save_ply and (step in [i - 1 for i in cfg.ply_steps] or step == max_steps - 1):
+                print(f"Exporting PLY at step {step}...")
+                if cfg.app_opt:
+                    # eval at origin to bake the appeareance into the colors
+                    rgb = self.app_module(
+                        features=self.splats["features"],
+                        embed_ids=None,
+                        dirs=torch.zeros_like(self.splats["means3d"][None, :, :]),
+                        sh_degree=sh_degree_to_use,
+                    )
+                    rgb = rgb + self.splats["colors"]
+                    rgb = torch.sigmoid(rgb).squeeze(0).unsqueeze(1)
+                    sh0 = rgb_to_sh(rgb)
+                    shN = torch.empty([sh0.shape[0], 0, 3], device=sh0.device)
+                else:
+                    sh0 = self.splats["sh0"]
+                    shN = self.splats["shN"]
+
+                export_splats(
+                    means=self.splats["means3d"],  # Note: mapped to means3d
+                    scales=self.splats["scales"],
+                    quats=self.splats["quats"],
+                    opacities=self.splats["opacities"],
+                    sh0=sh0,
+                    shN=shN,
+                    format="ply",
+                    save_to=f"{self.ply_dir}/point_cloud_{step}.ply",
                 )
 
             # eval the full set
