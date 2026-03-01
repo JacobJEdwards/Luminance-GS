@@ -12,7 +12,6 @@ from pycolmap import SceneManager
 from tqdm import tqdm
 from typing_extensions import assert_never
 
-from exif import compute_exposure_from_exif
 from .normalize import (
     align_principal_axes,
     similarity_from_cameras,
@@ -365,27 +364,7 @@ class Parser:
         self.camera_indices = [self.camera_id_to_idx[cid] for cid in camera_ids]
         self.num_cameras = len(unique_camera_ids)
 
-        if load_exposure:
-            exposure_values: List[Optional[float]] = []
-            for original_path in tqdm(self.original_image_paths, desc="Loading EXIF exposure"):
-                exposure_values.append(compute_exposure_from_exif(Path(original_path)))
-
-            valid_exposures = [e for e in exposure_values if e is not None]
-            if valid_exposures:
-                exposure_mean = sum(valid_exposures) / len(valid_exposures)
-                self.exposure_values: List[Optional[float]] = [
-                    (e - exposure_mean) if e is not None else None
-                    for e in exposure_values
-                ]
-                print(
-                    f"[Parser] Loaded exposure for {len(valid_exposures)}/{len(exposure_values)} images "
-                    f"(mean={exposure_mean:.3f} EV)"
-                )
-            else:
-                self.exposure_values = [None] * len(exposure_values)
-                print("[Parser] No valid EXIF exposure data found in any image.")
-        else:
-            self.exposure_values = [None] * len(image_paths)
+        self.exposure_values = [None] * len(image_paths)
 
         actual_image = imageio.imread(self.image_paths[0])[..., :3]
         actual_height, actual_width = actual_image.shape[:2]
