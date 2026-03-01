@@ -24,5 +24,5 @@ for DATA in "${DATASETS[@]}"; do
     echo "Processing: $DATA"
     DIR="$BASE/$DATA"
 
-    python simple_trainer_ours.py default --data-dir "$DIR" --result-dir "$DIR/results/luminance-gs"
+    python simple_trainer_ours.py --data-dir "$DIR" --result-dir "$DIR/results/luminance-gs"
 done
