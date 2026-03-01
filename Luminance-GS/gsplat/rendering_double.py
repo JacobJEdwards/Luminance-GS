@@ -13,6 +13,7 @@ gsplat_path = os.path.abspath(os.path.join(current_dir, '..', 'gsplat'))
 
 sys.path.append(gsplat_path)
 
+
 from gsplat.cuda._wrapper import (
     fully_fused_projection,
     isect_offset_encode,
