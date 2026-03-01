@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c7aa9a71-c545-4b9f-8153-ace6f411e05c" name="Changes" comment="render with stem">
-      <change afterPath="$PROJECT_DIR$/gsplat/exporter.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/examples/simple_trainer_ours.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/simple_trainer_ours.py" afterDir="false" />
+    <list default="true" id="c7aa9a71-c545-4b9f-8153-ace6f411e05c" name="Changes" comment="added exporter">
       <change beforePath="$PROJECT_DIR$/gsplat/rendering_double.py" beforeDir="false" afterPath="$PROJECT_DIR$/gsplat/rendering_double.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -59,6 +56,11 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/gsplat" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -94,7 +96,7 @@
       <workItem from="1760801524598" duration="752000" />
       <workItem from="1760989368823" duration="708000" />
       <workItem from="1772215490497" duration="2822000" />
-      <workItem from="1772374010748" duration="305000" />
+      <workItem from="1772374010748" duration="752000" />
     </task>
     <task id="LOCAL-00001" summary="all god">
       <option name="closed" value="true" />
@@ -360,7 +362,15 @@
       <option name="project" value="LOCAL" />
       <updated>1772216399315</updated>
     </task>
-    <option name="localTasksCounter" value="34" />
+    <task id="LOCAL-00034" summary="added exporter">
+      <option name="closed" value="true" />
+      <created>1772374322750</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1772374322750</updated>
+    </task>
+    <option name="localTasksCounter" value="35" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -374,7 +384,8 @@
     <MESSAGE value="postfix" />
     <MESSAGE value="updated script for testing" />
     <MESSAGE value="render with stem" />
-    <option name="LAST_COMMIT_MESSAGE" value="render with stem" />
+    <MESSAGE value="added exporter" />
+    <option name="LAST_COMMIT_MESSAGE" value="added exporter" />
   </component>
   <component name="github-copilot-workspace">
     <instructionFileLocations>
